@@ -1,0 +1,61 @@
+x-env-base-file: &env-base-file
+  env_file:
+    - ../docker/.env
+
+
+services:
+  user-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE_NAME: "user-service"
+    container_name: user-service
+    working_dir: /app/user-service
+    volumes:
+      - ../modules/user-service:/app/user-service
+      - ../modules/shared:/app/shared
+      - ../config/.air.toml:/app/.air.toml
+      - /app/user-service/tmp
+    ports:
+      - "8081:8080"
+    <<: *env-base-file
+    env_file:
+      - ../docker/.env
+      - ../modules/user-service/.env
+    depends_on:
+      - mongo
+      - auth-service
+
+  auth-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE_NAME: "auth-service"
+    container_name: auth-service
+    working_dir: /app/auth-service
+    volumes:
+      - ../modules/auth-service:/app/auth-service
+      - ../modules/shared:/app/shared
+      - ../config/.air.toml:/app/.air.toml
+      - /app/auth-service/tmp
+    ports:
+      - "8082:8080"
+    <<: *env-base-file
+    env_file:
+      - ../docker/.env
+      - ../modules/auth-service/.env
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest  # Use the latest MongoDB image
+    container_name: mongo
+    ports:
+      - "27017:27017"  # Expose MongoDB on the default port
+    volumes:
+      - mongo-data:/data/db  # Persist data
+
+volumes:
+  mongo-data:  # Define a named volume for MongoDB data persistence
